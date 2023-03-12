@@ -1,4 +1,4 @@
-mod header;
+pub mod header;
 
 pub const HEADER_SIZE: usize = 28;
 pub const MAX_PACKET_SIZE: usize = 1464;
@@ -6,9 +6,32 @@ use std::convert::TryFrom;
 
 pub use header::{Codec, Header, SubProtocol};
 
+#[derive(Debug)]
 pub enum Error {
     MissingMagicNumber,
     MalformedFormat,
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Error::MissingMagicNumber => "Missing magic number",
+                Error::MalformedFormat => "Malformed format",
+            }
+        )
+    }
+}
+
+impl std::error::Error for Error {
+    fn description(&self) -> &str {
+        match self {
+            Error::MissingMagicNumber => "Missing magic number",
+            Error::MalformedFormat => "Malformed format",
+        }
+    }
 }
 
 pub struct Packet {
@@ -35,5 +58,15 @@ impl TryFrom<&[u8]> for Packet {
             data: Vec::from(&value[HEADER_SIZE..]),
         };
         Ok(pkt)
+    }
+}
+
+impl From<Packet> for Vec<u8> {
+    fn from(pkt: Packet) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(HEADER_SIZE + pkt.data.len());
+        let header: [u8; HEADER_SIZE] = pkt.header.into();
+        buf.extend_from_slice(&header);
+        buf.extend_from_slice(&pkt.data);
+        buf
     }
 }
